@@ -79,6 +79,29 @@ class User(UserMixin, db.Model):
         query = sa.select(sa.func.count()).select_from(
             self.following.select().subquery())
         return db.session.scalar(query)
+    # sa.func.count() refelects that we do not want the results of the .select() query, 
+    # but the count of the result. 
+
+    def following_posts(self):
+        Author = so.aliased(User)
+        Follower = so.aliased(User)
+        return (
+            sa.select(Post)
+            .join(Post.author.of_type(Author))
+            .join(Author.followers.of_type(Follower), isouter=True)
+            .where(sa.or_(
+                Follower.id == self.id,
+                Author.id == self.id
+            ))
+            .group_by(Post)
+            .order_by(Post.timestamp.desc())
+        )
+    # .aliased just creates two copies of the User table. 
+    # implicit meaning to what those aliases mean comes from .join (.of_type()) 
+    
+    
+    
+
 
     
     

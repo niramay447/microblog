@@ -7,7 +7,7 @@ from app.models import User
 from flask_login import login_required
 from flask import request
 from urllib.parse import urlsplit
-from app.forms import RegistrationForm
+from app.forms import RegistrationForm, EmptyForm
 from datetime import datetime, timezone
 
 
@@ -103,3 +103,22 @@ def edit_profile():
         form.username.data = current_user.username
         form.about_me.data = current_user.about_me
     return render_template('edit_profile.html', title='Edit Profile', form=form)
+
+
+@app.route('/follow/<username>', methods=['POST'])
+@login_required
+def follow(username):
+    form = EmptyForm()
+    if form.validate_on_submit():
+        user=db.session.scalar(sa.select(User).where(User.username==username))
+        if user is None:
+            flash(f'User{username} not found.')
+            return redirect(url_for('user',username=username))
+        if user == current_user:
+            return redirect(url_for('user',username=username))
+        current_user.follow(user)
+        db.session.commit()
+        flash(f'You are following {username}!')
+        return redirect(url_for('user',username=username))
+    else: 
+        return redirect(url_for('index'))
